@@ -50,7 +50,7 @@ def get_transition_viewset_method(transition_name):
     return transition_action
 
 
-def get_drf_fsm_mixin(Model, fieldname='state'):
+def get_drf_fsm_mixin(Model, fieldname='state', action_kwargs={}):
     """
     Find all transitions defined on `Model`, then create a corresponding
     viewset action method for each and apply it to `Mixin`. Finally, return
@@ -76,12 +76,18 @@ def get_drf_fsm_mixin(Model, fieldname='state'):
     transitions = getattr(Model(), 'get_all_{}_transitions'.format(fieldname))()
     transition_names = set(x.name for x in transitions)
 
+    action_kwargs = {
+        'detail': True,
+        'methods': ['POST'],
+        **action_kwargs
+    }
+
     for transition_name in transition_names:
         url = transition_name.replace('_', '-')
         setattr(
             Mixin,
             transition_name,
-            action(methods=['POST'], detail=True, url_name=url, url_path=url)(
+            action(url_name=url, url_path=url, **action_kwargs)(
                 get_transition_viewset_method(transition_name)
             ),
         )
